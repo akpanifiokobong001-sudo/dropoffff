@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+
+# Local SQLite database (replaced by Postgres; ignore any leftover files)
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# Environment files
+.env
+.env.*

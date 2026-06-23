@@ -1,0 +1,21 @@
+{
+  "name": "dropoff-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "DropOff backend API — Express + SQLite + JWT auth.",
+  "scripts": {
+    "start": "node --no-warnings src/index.js",
+    "dev": "node --no-warnings --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.21.0"
+  }
+}

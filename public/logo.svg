@@ -1,0 +1,18 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7A4D"/>
+      <stop offset="0.5" stop-color="#FF5630"/>
+      <stop offset="1" stop-color="#0EA5A4"/>
+    </linearGradient>
+  </defs>
+  <!-- Pin / drop shape -->
+  <path d="M32 4C20.4 4 11 13.2 11 24.6c0 14.2 17.6 31.4 19.4 33.1a2.4 2.4 0 0 0 3.2 0C35.4 56 53 38.8 53 24.6 53 13.2 43.6 4 32 4Z" fill="url(#g)"/>
+  <!-- Package box -->
+  <g transform="translate(32 25)">
+    <path d="M-10 -5 L0 -10 L10 -5 L10 7 L0 12 L-10 7 Z" fill="#fff" fill-opacity="0.96"/>
+    <path d="M-10 -5 L0 0 L10 -5" stroke="#FF5630" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+    <path d="M0 0 L0 12" stroke="#FF5630" stroke-width="1.6"/>
+    <path d="M0 -10 L0 0" stroke="#0EA5A4" stroke-width="1.6"/>
+  </g>
+</svg>

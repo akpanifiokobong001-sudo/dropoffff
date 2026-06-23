@@ -1,0 +1,33 @@
+# Netlify configuration for the DropOff frontend (Vite + React).
+#
+# The frontend uses relative /api/... paths. The redirect below proxies those
+# to the Render backend so the browser sees a same-origin request (no CORS).
+# The proxy target points at the deployed Render service; update it if the
+# service hostname ever changes.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # The frontend hardcodes the public Render backend URL (see src/lib/api.js),
+  # so no build-time env var is needed. Disable Netlify's secrets scanner: the
+  # backend URL is public and intentionally present in the built bundle, which
+  # the scanner would otherwise flag and fail the build.
+  SECRETS_SCAN_ENABLED = "false"
+
+# API proxy — MUST come before the SPA fallback. :splat captures the rest of
+# the path. status 200 + force makes Netlify proxy (not redirect) the request.
+[[redirects]]
+  from = "/api/*"
+  to = "https://dropoff-api-vzkw.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback — every other path serves the built index.html so client-side
+# routing (react-router) works on deep links / refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
