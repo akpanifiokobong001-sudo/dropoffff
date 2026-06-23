@@ -7,7 +7,9 @@ const { Pool } = pg
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.NODE_ENV === 'production' || process.env.DATABASE_URL?.includes('neon.tech') 
+    ? { rejectUnauthorized: false } 
+    : false,
 })
 
 // --- Query helpers ---------------------------------------------------------
@@ -82,6 +84,54 @@ export async function initSchema() {
       message    TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    CREATE TABLE IF NOT EXISTS login_logs (
+      id         SERIAL PRIMARY KEY,
+      email      TEXT NOT NULL,
+      user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      payload    JSONB NOT NULL,
+      status     TEXT NOT NULL,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_login_logs_user ON login_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_login_logs_email ON login_logs(email);
+    CREATE INDEX IF NOT EXISTS idx_login_logs_created ON login_logs(created_at);
+
+    CREATE TABLE IF NOT EXISTS booking_logs (
+      id         SERIAL PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      shipment_id INTEGER REFERENCES shipments(id) ON DELETE SET NULL,
+      payload    JSONB NOT NULL,
+      status     TEXT NOT NULL,
+      error_message TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_booking_logs_user ON booking_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_booking_logs_shipment ON booking_logs(shipment_id);
+    CREATE INDEX IF NOT EXISTS idx_booking_logs_created ON booking_logs(created_at);
+
+    CREATE TABLE IF NOT EXISTS progress_logs (
+      id          SERIAL PRIMARY KEY,
+      shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      from_stage  TEXT NOT NULL,
+      to_stage    TEXT NOT NULL,
+      stage_index INTEGER NOT NULL,
+      change_payload JSONB,
+      ip_address  TEXT,
+      user_agent  TEXT,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_progress_logs_shipment ON progress_logs(shipment_id);
+    CREATE INDEX IF NOT EXISTS idx_progress_logs_user ON progress_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_progress_logs_created ON progress_logs(created_at);
   `)
 
   // Additive migrations for DBs created before a column existed. Postgres

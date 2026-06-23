@@ -1,5 +1,6 @@
 // DropOff API server — Express + Postgres (pg) + JWT auth.
 // Mounts the auth, quotes, shipments, and tracking routers, plus a contact endpoint.
+import 'dotenv/config.js'
 import express from 'express'
 import cors from 'cors'
 
