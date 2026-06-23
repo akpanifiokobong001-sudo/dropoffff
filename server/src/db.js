@@ -120,7 +120,8 @@ export async function initSchema() {
       id          SERIAL PRIMARY KEY,
       shipment_id INTEGER NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
       user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      from_stage  TEXT NOT NULL,
+      -- Nullable: the very first 'created' event has no prior stage to come from.
+      from_stage  TEXT,
       to_stage    TEXT NOT NULL,
       stage_index INTEGER NOT NULL,
       change_payload JSONB,
@@ -140,6 +141,9 @@ export async function initSchema() {
   await pool.query("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS from_state TEXT NOT NULL DEFAULT '';")
   await pool.query("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS to_state TEXT NOT NULL DEFAULT '';")
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';")
+  // The initial 'created' progress event has no prior stage, so from_stage must
+  // allow NULL. Older DBs created the column NOT NULL — relax it here.
+  await pool.query('ALTER TABLE progress_logs ALTER COLUMN from_stage DROP NOT NULL;')
 }
 
 export default pool
