@@ -46,19 +46,69 @@ function validatePhoto(photo) {
   return photo
 }
 
+// Helper to extract client IP from request
+function getClientIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+         req.socket.remoteAddress ||
+         'unknown'
+}
+
+// Helper to log booking attempts
+async function logBooking(userId, shipmentId, payload, status, errorMessage = null, req) {
+  const ip = getClientIP(req)
+  const userAgent = req.headers['user-agent'] || ''
+  
+  await query(
+    `INSERT INTO booking_logs (user_id, shipment_id, payload, status, error_message, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [userId, shipmentId || null, JSON.stringify(payload), status, errorMessage || null, ip, userAgent]
+  )
+}
+
+// Helper to log progress updates
+async function logProgress(shipmentId, userId, fromStage, toStage, stageIndex, changePayload, req) {
+  const ip = getClientIP(req)
+  const userAgent = req.headers['user-agent'] || ''
+  
+  await query(
+    `INSERT INTO progress_logs (shipment_id, user_id, from_stage, to_stage, stage_index, change_payload, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [shipmentId, userId, fromStage, toStage, stageIndex, JSON.stringify(changePayload || {}), ip, userAgent]
+  )
+}
+
 // POST /api/shipments — create a shipment. Auth required: every shipment is owned
 // by the signed-in user who booked it.
 router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const { fromCode, toCode, fromState = '', toState = '', weightKg, service = 'express', parcelType = 'box', sender = {}, recipient = {}, photo } = req.body || {}
+  const bookingPayload = { fromCode, toCode, fromState, toState, weightKg, service, parcelType, timestamp: new Date().toISOString() }
 
-  if (!isValidCountry(fromCode)) return res.status(400).json({ error: 'Invalid origin country code' })
-  if (!isValidCountry(toCode)) return res.status(400).json({ error: 'Invalid destination country code' })
+  if (!isValidCountry(fromCode)) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_origin', 'Invalid origin country code', req)
+    return res.status(400).json({ error: 'Invalid origin country code' })
+  }
+  if (!isValidCountry(toCode)) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_destination', 'Invalid destination country code', req)
+    return res.status(400).json({ error: 'Invalid destination country code' })
+  }
 
   // States are optional, but if given (or required by the country) they must be valid.
-  if (fromState && !isValidState(fromCode, fromState)) return res.status(400).json({ error: 'Invalid origin state' })
-  if (toState && !isValidState(toCode, toState)) return res.status(400).json({ error: 'Invalid destination state' })
-  if (hasStates(fromCode) && !fromState) return res.status(400).json({ error: 'Origin state is required' })
-  if (hasStates(toCode) && !toState) return res.status(400).json({ error: 'Destination state is required' })
+  if (fromState && !isValidState(fromCode, fromState)) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_origin_state', 'Invalid origin state', req)
+    return res.status(400).json({ error: 'Invalid origin state' })
+  }
+  if (toState && !isValidState(toCode, toState)) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_destination_state', 'Invalid destination state', req)
+    return res.status(400).json({ error: 'Invalid destination state' })
+  }
+  if (hasStates(fromCode) && !fromState) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_origin_state_required', 'Origin state is required', req)
+    return res.status(400).json({ error: 'Origin state is required' })
+  }
+  if (hasStates(toCode) && !toState) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_destination_state_required', 'Destination state is required', req)
+    return res.status(400).json({ error: 'Destination state is required' })
+  }
 
   // A shipment is "domestic" only when it stays in the exact same place: same
   // country AND (where states apply) the same state. Different states in one
@@ -66,12 +116,16 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
   const domestic = fromCode === toCode && (fromState || '') === (toState || '')
 
   const w = Number(weightKg)
-  if (!Number.isFinite(w) || w <= 0 || w > 1000) return res.status(400).json({ error: 'Weight must be a positive number (kg)' })
+  if (!Number.isFinite(w) || w <= 0 || w > 1000) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_weight', 'Weight must be a positive number (kg)', req)
+    return res.status(400).json({ error: 'Weight must be a positive number (kg)' })
+  }
 
   let photoData
   try {
     photoData = validatePhoto(photo)
   } catch (err) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_photo', err.message, req)
     return res.status(400).json({ error: err.message })
   }
 
@@ -108,8 +162,16 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       'INSERT INTO shipment_events (shipment_id, stage_key, label, detail, place, done, occurred_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [inserted.id, stage.key, stage.label, stage.detail, placeFor(i), done, done ? new Date().toISOString() : null],
     )
+    
+    // Log the initial 'created' stage
+    if (done) {
+      await logProgress(inserted.id, req.user.id, null, stage.key, i, { initial: true, domestic }, req)
+    }
   }
 
+  // Log successful booking
+  await logBooking(req.user.id, inserted.id, { ...bookingPayload, tracking, price: quote.price }, 'booking_success', null, req)
+  
   return res.status(201).json({ shipment: await serializeShipment(inserted) })
 }))
 
@@ -168,6 +230,11 @@ router.patch('/:tracking/advance', requireAuth, asyncHandler(async (req, res) =>
   if (target < currentIndex) {
     return res.status(400).json({ error: 'Cannot move a shipment to an earlier stage' })
   }
+
+  // Log the progress change
+  const fromStage = STAGES[currentIndex]?.key
+  const toStageKey = STAGES[target]?.key
+  await logProgress(row.id, req.user.id, fromStage, toStageKey, target, { toStage, toIndex, manual: true }, req)
 
   await setProgress(row, target)
 

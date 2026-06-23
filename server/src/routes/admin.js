@@ -9,6 +9,25 @@ import { STAGES, serializeShipment, setProgress } from '../shipment-stages.js'
 
 const router = Router()
 
+// Helper to extract client IP from request
+function getClientIP(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+         req.socket.remoteAddress ||
+         'unknown'
+}
+
+// Helper to log admin progress updates
+async function logAdminProgress(shipmentId, adminUserId, fromStage, toStage, stageIndex, changePayload, req) {
+  const ip = getClientIP(req)
+  const userAgent = req.headers['user-agent'] || ''
+  
+  await query(
+    `INSERT INTO progress_logs (shipment_id, user_id, from_stage, to_stage, stage_index, change_payload, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [shipmentId, adminUserId, fromStage, toStage, stageIndex, JSON.stringify({ ...changePayload, admin: true }), ip, userAgent]
+  )
+}
+
 // Attach the owner's email/name to a serialized shipment so the admin UI can
 // show who booked it.
 async function withOwner(row) {
@@ -92,8 +111,18 @@ router.patch('/shipments/:tracking/stage', requireAdmin, asyncHandler(async (req
     return res.status(400).json({ error: 'Provide toStage or toIndex' })
   }
 
+  // Get current stage before updating
+  const countRow = await queryOne('SELECT COUNT(*) AS c FROM shipment_events WHERE shipment_id = $1 AND done = true', [row.id])
+  const doneCount = Number(countRow.c)
+  const currentIndex = Math.max(0, doneCount - 1)
+  const fromStage = STAGES[currentIndex]?.key
+
   // No forward-only guard here: admins may move a shipment to any stage.
   await setProgress(row, target)
+
+  // Log admin progress change
+  const toStageKey = STAGES[target]?.key
+  await logAdminProgress(row.id, req.user.id, fromStage, toStageKey, target, { toStage, toIndex }, req)
 
   const updated = await queryOne('SELECT * FROM shipments WHERE id = $1', [row.id])
   return res.json({ shipment: await withOwner(updated) })

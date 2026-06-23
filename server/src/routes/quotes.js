@@ -12,7 +12,6 @@ router.post('/', (req, res) => {
 
   if (!isValidCountry(fromCode)) return res.status(400).json({ error: 'Invalid origin country code' })
   if (!isValidCountry(toCode)) return res.status(400).json({ error: 'Invalid destination country code' })
-  if (fromCode === toCode) return res.status(400).json({ error: 'Origin and destination must differ' })
 
   // States are optional, but if given (or required by the country) they must be valid.
   if (fromState && !isValidState(fromCode, fromState)) return res.status(400).json({ error: 'Invalid origin state' })
