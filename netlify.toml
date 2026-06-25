@@ -24,7 +24,7 @@
 # the path. status 200 + force makes Netlify proxy (not redirect) the request.
 [[redirects]]
   from = "/api/*"
-  to = "https://dropoff-api-xocp.onrender.com:splat"
+  to = "https://dropoff-api-xocp.onrender.com/api/:splat"
   status = 200
   force = true
 
