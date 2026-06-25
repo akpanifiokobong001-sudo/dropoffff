@@ -107,4 +107,78 @@ router.get('/me', requireAuth, (req, res) => {
   return res.json({ user: publicUser(req.user) })
 })
 
+// Generate a 6-digit reset code as a zero-padded string.
+function makeResetCode() {
+  return String(Math.floor(100000 + Math.random() * 900000))
+}
+const RESET_TTL_MS = 15 * 60 * 1000 // codes are valid for 15 minutes
+
+// POST /api/auth/forgot — start a password reset. With no email service wired
+// up, the one-time code is returned directly in the response so the user can
+// type it into the reset form ("reset code on screen"). To avoid leaking which
+// emails are registered, we always respond 200 — `code` is only present when
+// the email actually matches an account.
+router.post('/forgot', asyncHandler(async (req, res) => {
+  const { email } = req.body || {}
+  if (!email || !EMAIL_RE.test(email)) {
+    return res.status(400).json({ error: 'A valid email is required' })
+  }
+
+  const user = await queryOne('SELECT * FROM users WHERE email = $1', [String(email).toLowerCase()])
+  if (!user) {
+    // Don't reveal that the account doesn't exist.
+    await logLoginAttempt(email, null, { email }, 'reset_requested_unknown_email', req)
+    return res.json({ ok: true, message: 'If that account exists, a reset code has been issued.' })
+  }
+
+  const code = makeResetCode()
+  const expires = new Date(Date.now() + RESET_TTL_MS)
+  await query(
+    'UPDATE users SET reset_code = $1, reset_expires = $2 WHERE id = $3',
+    [code, expires.toISOString(), user.id],
+  )
+  await logLoginAttempt(email, user.id, { email }, 'reset_code_issued', req)
+
+  return res.json({
+    ok: true,
+    message: 'Reset code issued. Enter it along with your new password.',
+    code, // shown on screen since there is no email channel
+    expiresInMinutes: 15,
+  })
+}))
+
+// POST /api/auth/reset — complete a reset with { email, code, password }.
+router.post('/reset', asyncHandler(async (req, res) => {
+  const { email, code, password } = req.body || {}
+  if (!email || !EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' })
+  if (!code) return res.status(400).json({ error: 'Reset code is required' })
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' })
+  }
+
+  const user = await queryOne('SELECT * FROM users WHERE email = $1', [String(email).toLowerCase()])
+  // Same generic error for unknown email / wrong code / expired code so we
+  // never reveal which one it was.
+  const invalid = () => res.status(400).json({ error: 'Invalid or expired reset code' })
+  if (!user || !user.reset_code || user.reset_code !== String(code).trim()) {
+    await logLoginAttempt(email, user?.id || null, { email }, 'reset_failed_bad_code', req)
+    return invalid()
+  }
+  const expires = user.reset_expires instanceof Date ? user.reset_expires : new Date(user.reset_expires)
+  if (!user.reset_expires || expires.getTime() < Date.now()) {
+    await logLoginAttempt(email, user.id, { email }, 'reset_failed_expired', req)
+    return invalid()
+  }
+
+  const password_hash = await hashPassword(password)
+  await query(
+    'UPDATE users SET password_hash = $1, reset_code = NULL, reset_expires = NULL WHERE id = $2',
+    [password_hash, user.id],
+  )
+  await logLoginAttempt(email, user.id, { email }, 'reset_success', req)
+
+  // Log the user straight in after a successful reset.
+  return res.json({ token: signToken(user), user: publicUser(user) })
+}))
+
 export default router

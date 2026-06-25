@@ -112,6 +112,18 @@ export async function fetchMe() {
   return data.user
 }
 
+// POST /api/auth/forgot → { ok, message, code?, expiresInMinutes? }
+// With no email service, the one-time code comes back in the response so it can
+// be shown on screen.
+export async function forgotPassword({ email }) {
+  return request('/auth/forgot', { method: 'POST', body: { email } })
+}
+
+// POST /api/auth/reset → { token, user }  (logs the user in on success)
+export async function resetPassword({ email, code, password }) {
+  return request('/auth/reset', { method: 'POST', body: { email, code, password } })
+}
+
 // GET /api/shipments → [shipment, ...]  (the logged-in user's shipments)
 export async function fetchMyShipments() {
   const data = await request('/shipments')

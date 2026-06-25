@@ -52,6 +52,16 @@ export function AuthProvider({ children }) {
     return u
   }, [])
 
+  // Complete a password reset with { email, code, password }; the server logs
+  // the user straight in, so we apply the returned session like login/register.
+  const resetWithCode = useCallback(async (details) => {
+    const { token, user: u } = await api.resetPassword(details)
+    api.setToken(token)
+    setUser(u)
+    setLogoutReason(null)
+    return u
+  }, [])
+
   const logout = useCallback((reason = null) => {
     api.setToken(null)
     setUser(null)
@@ -84,7 +94,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user, loading, isAuthenticated: !!user, isAdmin: user?.role === 'admin',
-    login, register, logout,
+    login, register, logout, resetWithCode,
     logoutReason, clearLogoutReason: () => setLogoutReason(null),
   }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

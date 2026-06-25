@@ -141,6 +141,9 @@ export async function initSchema() {
   await pool.query("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS from_state TEXT NOT NULL DEFAULT '';")
   await pool.query("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS to_state TEXT NOT NULL DEFAULT '';")
   await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';")
+  // Password-reset code (one-time) + its expiry. Cleared once used.
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_code TEXT;')
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMPTZ;')
   // The initial 'created' progress event has no prior stage, so from_stage must
   // allow NULL. Older DBs created the column NOT NULL — relax it here.
   await pool.query('ALTER TABLE progress_logs ALTER COLUMN from_stage DROP NOT NULL;')
