@@ -5,7 +5,7 @@
 // so we don't depend on a Netlify edge proxy for /api. The backend URL is
 // public (it's visible in network requests regardless), so hardcoding it is
 // fine and avoids env-var/secret-scanning issues at build time.
-const PROD_API = 'https://dropoff-api-vzkw.onrender.com/api'
+const PROD_API = 'https://dropoff-api-xocp.onrender.com'
 const BASE = import.meta.env.PROD ? PROD_API : '/api'
 const TOKEN_KEY = 'dropoff.token'
 
