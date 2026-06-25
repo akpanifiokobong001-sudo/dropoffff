@@ -37,4 +37,4 @@ services:
         sync: false
       # Optional hardening: restrict CORS to your Netlify site once you know it.
       # - key: CORS_ORIGIN
-      #   value: https://your-site.netlify.app
+      #   value: https://dropof.netlify.app/
