@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
-import WhatsAppButton from './components/WhatsAppButton.jsx'
 import Home from './pages/Home.jsx'
 import Send from './pages/Send.jsx'
 import Track from './pages/Track.jsx'
@@ -62,7 +61,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-      <WhatsAppButton />
     </div>
   )
 }

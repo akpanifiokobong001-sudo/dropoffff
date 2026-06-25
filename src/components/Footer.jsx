@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Mail, MapPin, Twitter, Instagram, Linkedin } from 'lucide-react'
 import Logo from './Logo.jsx'
-import { WhatsAppIcon } from './WhatsAppButton.jsx'
-import { buildWhatsAppLink, WHATSAPP_DISPLAY, CONTACT_EMAIL } from '../lib/contact.js'
+import { CONTACT_EMAIL } from '../lib/contact.js'
 
 const cols = [
   {
@@ -83,14 +82,6 @@ export default function Footer() {
               className="inline-flex items-center gap-1.5 transition hover:text-brand-600"
             >
               <Mail size={14} /> {CONTACT_EMAIL}
-            </a>
-            <a
-              href={buildWhatsAppLink()}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 transition hover:text-[#25D366]"
-            >
-              <WhatsAppIcon size={14} /> {WHATSAPP_DISPLAY}
             </a>
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} /> Global HQ · Remote-first

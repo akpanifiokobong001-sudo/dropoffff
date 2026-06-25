@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ShieldCheck, Search, Loader2, AlertCircle, MapPin, ArrowRight,
-  PackageCheck, Truck, RefreshCw, User, Package, Users, DollarSign, Clock,
+  PackageCheck, Truck, RefreshCw, User, Package, Users, DollarSign, Clock, Phone,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
@@ -287,6 +287,14 @@ function ControlCard({ shipment, onSetStage, updating, error, onClose }) {
           <span className="text-xs font-medium text-ink-muted">{shipment.progress}%</span>
         </div>
 
+        {/* Sender / recipient */}
+        {(shipment.sender?.name || shipment.recipient?.name) && (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <AdminContact title="Sender" contact={shipment.sender} />
+            <AdminContact title="Recipient" contact={shipment.recipient} />
+          </div>
+        )}
+
         <p className="mt-6 label">Set stage (forward or backward)</p>
         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {STAGES.map((stage, idx) => {
@@ -322,6 +330,37 @@ function ControlCard({ shipment, onSetStage, updating, error, onClose }) {
         )}
       </div>
     </Reveal>
+  )
+}
+
+// Compact sender/recipient panel for the admin shipment control card.
+function AdminContact({ title, contact }) {
+  if (!contact?.name) {
+    return (
+      <div className="rounded-2xl border border-ink/10 bg-cloud/50 p-4 text-sm text-ink-muted">
+        <div className="mb-1 text-xs font-bold uppercase tracking-wide">{title}</div>
+        Not provided
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-2xl border border-ink/10 bg-white p-4 text-sm">
+      <div className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink-muted">
+        <User size={12} /> {title}
+      </div>
+      <div className="font-semibold text-ink">{contact.name}</div>
+      {(contact.address || contact.city) && (
+        <div className="mt-1 flex items-start gap-1.5 text-ink-soft">
+          <MapPin size={13} className="mt-0.5 shrink-0 text-ink-muted" />
+          <span>{contact.address}{contact.city ? `, ${contact.city}` : ''}</span>
+        </div>
+      )}
+      {contact.phone && (
+        <div className="mt-1 flex items-center gap-1.5 text-ink-soft">
+          <Phone size={13} className="shrink-0 text-ink-muted" /> {contact.phone}
+        </div>
+      )}
+    </div>
   )
 }
 

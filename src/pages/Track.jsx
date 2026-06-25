@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Search, MapPin, PackageCheck, Truck, CheckCircle2, Circle, Copy, Loader2, AlertCircle, ImageIcon,
+  User, Phone,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
@@ -173,6 +174,14 @@ export default function Track() {
                   </div>
                 </div>
 
+                {/* Sender / recipient details */}
+                {(result.sender?.name || result.recipient?.name) && (
+                  <div className="grid gap-px border-b border-ink/5 bg-ink/5 sm:grid-cols-2">
+                    <ContactCard title="Sender" accent="brand" contact={result.sender} />
+                    <ContactCard title="Recipient" accent="teal" contact={result.recipient} />
+                  </div>
+                )}
+
                 {/* Parcel photo (if the sender added one) */}
                 {result.photo && (
                   <div className="border-b border-ink/5 bg-cloud/60 p-6">
@@ -227,6 +236,33 @@ export default function Track() {
             </motion.div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Sender / recipient panel shown on a tracked shipment.
+function ContactCard({ title, accent, contact }) {
+  if (!contact?.name) return null
+  const tint = accent === 'teal' ? 'text-teal-600' : 'text-brand-600'
+  return (
+    <div className="bg-white p-5">
+      <div className={`mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide ${tint}`}>
+        <User size={14} /> {title}
+      </div>
+      <div className="space-y-1.5 text-sm text-ink">
+        <div className="font-semibold">{contact.name}</div>
+        {contact.address && (
+          <div className="flex items-start gap-2 text-ink-soft">
+            <MapPin size={14} className="mt-0.5 shrink-0 text-ink-muted" />
+            <span>{contact.address}{contact.city ? `, ${contact.city}` : ''}</span>
+          </div>
+        )}
+        {contact.phone && (
+          <div className="flex items-center gap-2 text-ink-soft">
+            <Phone size={14} className="shrink-0 text-ink-muted" /> {contact.phone}
+          </div>
+        )}
       </div>
     </div>
   )

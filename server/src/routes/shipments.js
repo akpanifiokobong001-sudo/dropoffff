@@ -46,6 +46,23 @@ function validatePhoto(photo) {
   return photo
 }
 
+// Sender/recipient contact fields. All four are required and capped to keep the
+// JSON small. Returns a cleaned object, or throws an Error with a user-facing
+// message naming which party (sender/recipient) is incomplete.
+const CONTACT_FIELDS = ['name', 'address', 'city', 'phone']
+const CONTACT_MAX = 200
+function cleanContact(raw, who) {
+  const c = raw && typeof raw === 'object' ? raw : {}
+  const out = {}
+  for (const field of CONTACT_FIELDS) {
+    const v = String(c[field] ?? '').trim()
+    if (!v) throw new Error(`${who} ${field} is required`)
+    if (v.length > CONTACT_MAX) throw new Error(`${who} ${field} is too long`)
+    out[field] = v
+  }
+  return out
+}
+
 // Helper to extract client IP from request
 function getClientIP(req) {
   return req.headers['x-forwarded-for']?.split(',')[0].trim() ||
@@ -129,6 +146,16 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
     return res.status(400).json({ error: err.message })
   }
 
+  // Sender + recipient contact details are required for pickup/delivery.
+  let senderClean, recipientClean
+  try {
+    senderClean = cleanContact(sender, 'Sender')
+    recipientClean = cleanContact(recipient, 'Recipient')
+  } catch (err) {
+    await logBooking(req.user.id, null, bookingPayload, 'booking_failed_invalid_contact', err.message, req)
+    return res.status(400).json({ error: err.message })
+  }
+
   const quote = estimatePrice({ fromCode, toCode, fromState, toState, weightKg: w, service })
   const tracking = await newTrackingNumber()
 
@@ -142,7 +169,7 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
       req.user.id,
       fromCode, toCode, fromState, toState, w, quote.service, parcelType,
       quote.price, quote.currency, quote.etaDays,
-      JSON.stringify(sender || {}), JSON.stringify(recipient || {}),
+      JSON.stringify(senderClean), JSON.stringify(recipientClean),
       photoData,
     ],
   )

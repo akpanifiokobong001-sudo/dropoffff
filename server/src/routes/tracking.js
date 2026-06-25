@@ -8,6 +8,11 @@ const router = Router()
 
 const TOTAL_STAGES = 8
 
+// sender/recipient are stored as JSON text; parse safely (default to {}).
+function safeJson(s) {
+  try { return JSON.parse(s || '{}') } catch { return {} }
+}
+
 // GET /api/tracking/:tracking — timeline lookup, restricted to the shipment's owner.
 // Returns 404 for unknown or non-owned numbers so others' parcels stay private.
 router.get('/:tracking', requireAuth, asyncHandler(async (req, res) => {
@@ -33,6 +38,8 @@ router.get('/:tracking', requireAuth, asyncHandler(async (req, res) => {
       status: row.status,
       delivered: row.status === 'delivered',
       photo: row.photo || null,
+      sender: safeJson(row.sender),
+      recipient: safeJson(row.recipient),
       origin: events[0]?.place || COUNTRY_NAME[row.from_code] || row.from_code,
       destination: events[events.length - 1]?.place || COUNTRY_NAME[row.to_code] || row.to_code,
       currentIndex,

@@ -3,8 +3,7 @@ import { Globe2, Heart, Leaf, Users, Send, CheckCircle2, Mail } from 'lucide-rea
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
 import SectionHeading from '../components/Section.jsx'
-import { WhatsAppIcon } from '../components/WhatsAppButton.jsx'
-import { CONTACT_EMAIL, buildWhatsAppLink } from '../lib/contact.js'
+import { CONTACT_EMAIL } from '../lib/contact.js'
 
 const values = [
   { icon: Globe2, title: 'Borderless by design', desc: 'We believe distance shouldn’t decide what’s possible. Anyone, anywhere, can send to anyone.' },
@@ -99,14 +98,6 @@ export default function About() {
                 className="inline-flex items-center gap-1.5 font-semibold text-brand-600 hover:underline"
               >
                 <Mail size={14} /> {CONTACT_EMAIL}
-              </a>
-              <a
-                href={buildWhatsAppLink()}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 font-semibold text-[#25D366] hover:underline"
-              >
-                <WhatsAppIcon size={14} /> Chat on WhatsApp
               </a>
             </div>
           </Reveal>
