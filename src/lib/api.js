@@ -133,16 +133,8 @@ export async function fetchMyShipments() {
   return data.shipments
 }
 
-// PATCH /api/shipments/:tracking/advance → { shipment }
-// Move a shipment forward in its timeline. With no args, advances one stage;
-// pass { toStage } or { toIndex } to jump to a specific stage.
-export async function advanceShipment(trackingNumber, opts = {}) {
-  const data = await request(`/shipments/${encodeURIComponent(trackingNumber)}/advance`, {
-    method: 'PATCH',
-    body: opts,
-  })
-  return data.shipment
-}
+// NOTE: Customers cannot change shipment status. Stage control is admin-only —
+// see adminSetStage below (PATCH /api/admin/shipments/:tracking/stage).
 
 // --- Admin (require an admin token) ----------------------------------------
 

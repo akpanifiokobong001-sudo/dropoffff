@@ -5,7 +5,7 @@ import { isValidCountry, COUNTRY_NAME } from '../countries.js'
 import { hasStates, isValidState } from '../states.js'
 import { requireAuth } from '../auth.js'
 import { asyncHandler } from '../async-handler.js'
-import { STAGES, buildStages, buildPlaceFor, serializeShipment, setProgress } from '../shipment-stages.js'
+import { buildStages, buildPlaceFor, serializeShipment } from '../shipment-stages.js'
 
 const router = Router()
 
@@ -220,53 +220,9 @@ router.get('/:tracking', requireAuth, asyncHandler(async (req, res) => {
   return res.json({ shipment: await serializeShipment(row) })
 }))
 
-// PATCH /api/shipments/:tracking/advance — move a shipment forward in its
-// timeline. Owner-only (same privacy rule as the other endpoints).
-//   - No body / {}            → advance by one stage.
-//   - { toStage: 'customs' }  → jump to a named stage.
-//   - { toIndex: 4 }          → jump to a 0-based stage index.
-// Returns the updated shipment. 400 if already delivered or the target is invalid.
-router.patch('/:tracking/advance', requireAuth, asyncHandler(async (req, res) => {
-  const row = await queryOne('SELECT * FROM shipments WHERE tracking_number = $1', [String(req.params.tracking).toUpperCase()])
-  if (!row || row.user_id !== req.user.id) {
-    return res.status(404).json({ error: 'No shipment found for that tracking number' })
-  }
-
-  const countRow = await queryOne('SELECT COUNT(*) AS c FROM shipment_events WHERE shipment_id = $1 AND done = true', [row.id])
-  const doneCount = Number(countRow.c)
-  const currentIndex = Math.max(0, doneCount - 1)
-
-  const { toStage, toIndex } = req.body || {}
-  let target
-  if (toStage != null) {
-    target = STAGES.findIndex((s) => s.key === String(toStage))
-    if (target === -1) return res.status(400).json({ error: `Unknown stage "${toStage}"` })
-  } else if (toIndex != null) {
-    target = Number(toIndex)
-    if (!Number.isInteger(target) || target < 0 || target >= STAGES.length) {
-      return res.status(400).json({ error: `toIndex must be between 0 and ${STAGES.length - 1}` })
-    }
-  } else {
-    target = currentIndex + 1
-    if (target >= STAGES.length) {
-      return res.status(400).json({ error: 'Shipment is already delivered' })
-    }
-  }
-
-  // Don't allow moving a parcel backwards via this endpoint.
-  if (target < currentIndex) {
-    return res.status(400).json({ error: 'Cannot move a shipment to an earlier stage' })
-  }
-
-  // Log the progress change
-  const fromStage = STAGES[currentIndex]?.key
-  const toStageKey = STAGES[target]?.key
-  await logProgress(row.id, req.user.id, fromStage, toStageKey, target, { toStage, toIndex, manual: true }, req)
-
-  await setProgress(row, target)
-
-  const updated = await queryOne('SELECT * FROM shipments WHERE id = $1', [row.id])
-  return res.json({ shipment: await serializeShipment(updated) })
-}))
+// NOTE: Customers can no longer change a shipment's status. The parcel timeline
+// is operational state owned by DropOff staff, so advancing/moving a shipment is
+// admin-only — see PATCH /api/admin/shipments/:tracking/stage (routes/admin.js).
+// The former owner-facing PATCH /:tracking/advance endpoint was removed.
 
 export default router

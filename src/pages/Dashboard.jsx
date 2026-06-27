@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Package, PackageCheck, Truck, ArrowRight, Plus, Loader2, AlertCircle, MapPin, ChevronsRight,
+  Package, PackageCheck, Truck, ArrowRight, Plus, Loader2, AlertCircle, MapPin,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { fetchMyShipments, advanceShipment } from '../lib/api.js'
+import { fetchMyShipments } from '../lib/api.js'
 import { formatPrice } from '../lib/pricing.js'
 
 export default function Dashboard() {
@@ -15,24 +15,6 @@ export default function Dashboard() {
   const [shipments, setShipments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  // Tracking number currently being advanced (disables its button + shows a spinner).
-  const [advancing, setAdvancing] = useState(null)
-
-  async function handleAdvance(e, trackingNumber) {
-    // The whole card is a Link — don't navigate when clicking the button.
-    e.preventDefault()
-    e.stopPropagation()
-    setAdvancing(trackingNumber)
-    setError('')
-    try {
-      const updated = await advanceShipment(trackingNumber)
-      setShipments((prev) => prev.map((s) => (s.trackingNumber === trackingNumber ? updated : s)))
-    } catch (err) {
-      setError(err.message || 'Could not advance the shipment.')
-    } finally {
-      setAdvancing(null)
-    }
-  }
 
   useEffect(() => {
     let cancelled = false
@@ -156,21 +138,6 @@ export default function Dashboard() {
                       </span>
                     </div>
 
-                    {!s.delivered && (
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={(e) => handleAdvance(e, s.trackingNumber)}
-                          disabled={advancing === s.trackingNumber}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50 disabled:opacity-60"
-                        >
-                          {advancing === s.trackingNumber
-                            ? <Loader2 size={14} className="animate-spin" />
-                            : <ChevronsRight size={14} />}
-                          Advance stage
-                        </button>
-                      </div>
-                    )}
                   </Link>
                 </motion.div>
               ))}

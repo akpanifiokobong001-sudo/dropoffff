@@ -147,6 +147,29 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ===== CARGO BANNER ===== */}
+      <section className="container-x pb-4">
+        <Reveal>
+          <figure className="relative overflow-hidden rounded-[2rem] shadow-glow">
+            <img
+              src="/cargo-plane-2.jpg"
+              alt="DropOff ground crew loading parcels onto a DropOff-branded cargo plane on the runway"
+              loading="lazy"
+              className="h-64 w-full object-cover sm:h-80 lg:h-96"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
+            <figcaption className="absolute bottom-0 left-0 p-8 sm:p-10">
+              <span className="chip mb-3 border border-white/15 bg-white/10 text-white">
+                <Plane size={14} /> Air freight, worldwide
+              </span>
+              <p className="max-w-md text-xl font-extrabold text-white sm:text-2xl">
+                Your parcels, handled with care and flown across the globe.
+              </p>
+            </figcaption>
+          </figure>
+        </Reveal>
+      </section>
+
       {/* ===== FEATURES ===== */}
       <section className="bg-white py-20 sm:py-28">
         <div className="container-x">
@@ -165,8 +188,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== COVERAGE CTA ===== */}
+      {/* ===== PARCEL GALLERY ===== */}
       <section className="container-x py-20 sm:py-28">
+        <SectionHeading
+          eyebrow="Any shape, any size"
+          title="Built to carry whatever you send"
+          subtitle="From a single document to a stack of boxes — every parcel is packed, labelled, and tracked the DropOff way."
+        />
+        <div className="mt-14 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          {[
+            { src: '/parcel-1.png', alt: 'A DropOff-branded shipping box ready for collection' },
+            { src: '/parcel-2.png', alt: 'A DropOff parcel sealed and labelled for delivery' },
+            { src: '/parcel-3.png', alt: 'A DropOff package prepared for international shipping' },
+            { src: '/parcel-4.png', alt: 'A neatly packed DropOff box on its way across the globe' },
+          ].map((p, i) => (
+            <Reveal key={p.src} delay={(i % 4) * 0.06}>
+              <figure className="group overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-soft">
+                <img
+                  src={p.src}
+                  alt={p.alt}
+                  loading="lazy"
+                  className="aspect-square w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+              </figure>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ===== COVERAGE CTA ===== */}
+      <section className="container-x pb-20 sm:pb-28">
         <Reveal>
           <div className="relative overflow-hidden rounded-[2rem] bg-ink px-8 py-14 text-white sm:px-14 sm:py-20">
             <div className="absolute inset-0 bg-hero-grad opacity-40" />
@@ -186,18 +237,14 @@ export default function Home() {
                   Start shipping <ArrowRight size={18} />
                 </Link>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                {['🌍 Africa', '🌎 Americas', '🌏 Asia', '🇪🇺 Europe', '🕌 Middle East', '🏝️ Oceania'].map(
-                  (r) => (
-                    <div
-                      key={r}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-3 py-5 text-sm font-semibold backdrop-blur"
-                    >
-                      {r}
-                    </div>
-                  ),
-                )}
-              </div>
+              <figure className="overflow-hidden rounded-2xl border border-white/10 shadow-glow">
+                <img
+                  src="/cargo-plane-1.jpg"
+                  alt="DropOff ground crew loading cargo onto a DropOff-branded freight aircraft at the airport"
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              </figure>
             </div>
           </div>
         </Reveal>
