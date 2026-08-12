@@ -12,6 +12,13 @@ server/*.db
 server/*.db-shm
 server/*.db-wal
 
+# Pre-migration SQLite backups and dumps. These contain real user rows,
+# including bcrypt password hashes — never commit them.
+server/backup/
+*.db
+*.db-shm
+*.db-wal
+
 # Environment files
 .env
 .env.*
