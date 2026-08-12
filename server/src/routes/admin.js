@@ -6,6 +6,7 @@ import { query, queryOne } from '../db.js'
 import { requireAdmin } from '../auth.js'
 import { asyncHandler } from '../async-handler.js'
 import { STAGES, serializeShipment, setProgress } from '../shipment-stages.js'
+import { notify } from '../notifications.js'
 
 const router = Router()
 
@@ -123,6 +124,16 @@ router.patch('/shipments/:tracking/stage', requireAdmin, asyncHandler(async (req
   // Log admin progress change
   const toStageKey = STAGES[target]?.key
   await logAdminProgress(row.id, req.user.id, fromStage, toStageKey, target, { toStage, toIndex }, req)
+
+  // Notify the shipment's owner (not the admin) of the new status. Guard for
+  // orphaned shipments whose owner was deleted (user_id is NULL).
+  const stageLabel = STAGES[target]?.label || toStageKey
+  await notify(row.user_id, {
+    type: 'shipment_status',
+    title: `Shipment ${stageLabel}`,
+    body: `${row.tracking_number} is now "${stageLabel}".`,
+    link: `/track?number=${encodeURIComponent(row.tracking_number)}`,
+  })
 
   const updated = await queryOne('SELECT * FROM shipments WHERE id = $1', [row.id])
   return res.json({ shipment: await withOwner(updated) })

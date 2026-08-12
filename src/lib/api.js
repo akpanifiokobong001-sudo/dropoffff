@@ -115,6 +115,17 @@ export async function fetchMe() {
   return data.user
 }
 
+// PATCH /api/auth/profile → { user }  (update the signed-in user's name)
+export async function updateProfile({ name }) {
+  const data = await request('/auth/profile', { method: 'PATCH', body: { name } })
+  return data.user
+}
+
+// POST /api/auth/change-password → { ok }  (requires the current password)
+export async function changePassword({ currentPassword, newPassword }) {
+  return request('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } })
+}
+
 // POST /api/auth/forgot → { ok, message, code?, expiresInMinutes? }
 // With no email service, the one-time code comes back in the response so it can
 // be shown on screen.
@@ -131,6 +142,33 @@ export async function resetPassword({ email, code, password }) {
 export async function fetchMyShipments() {
   const data = await request('/shipments')
   return data.shipments
+}
+
+// PATCH /api/shipments/:tracking → { shipment }
+// Update sender/recipient on a shipment the user owns (only while it's editable).
+export async function updateShipment(trackingNumber, { sender, recipient }) {
+  const data = await request(`/shipments/${encodeURIComponent(trackingNumber)}`, {
+    method: 'PATCH',
+    body: { sender, recipient },
+  })
+  return data.shipment
+}
+
+// --- Notifications ---------------------------------------------------------
+
+// GET /api/notifications → { notifications, unreadCount }
+export async function fetchNotifications() {
+  return request('/notifications')
+}
+
+// PATCH /api/notifications/:id/read → { notification }
+export async function markNotificationRead(id) {
+  return request(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' })
+}
+
+// POST /api/notifications/read-all → { ok }
+export async function markAllNotificationsRead() {
+  return request('/notifications/read-all', { method: 'POST' })
 }
 
 // NOTE: Customers cannot change shipment status. Stage control is admin-only —

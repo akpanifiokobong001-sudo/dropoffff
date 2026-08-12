@@ -11,6 +11,7 @@ import quotesRoutes from './routes/quotes.js'
 import shipmentsRoutes from './routes/shipments.js'
 import trackingRoutes from './routes/tracking.js'
 import adminRoutes from './routes/admin.js'
+import notificationsRoutes from './routes/notifications.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 5418
@@ -33,6 +34,7 @@ app.use('/api/quotes', quotesRoutes)
 app.use('/api/shipments', shipmentsRoutes)
 app.use('/api/tracking', trackingRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/notifications', notificationsRoutes)
 
 // POST /api/contact — store a contact message (table created in db.js).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

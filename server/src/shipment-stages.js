@@ -6,6 +6,11 @@ import { COUNTRY_NAME } from './countries.js'
 
 // The canonical timeline stages (mirrors the frontend's tracking stages). The
 // `created` stage is index 0 and `delivered` is the last; there are 8 stages.
+// A shipment can be edited by its owner only while it's still at the origin —
+// once it's in transit, the sender/recipient details are locked. Shared by the
+// shipments router (PATCH guard) and serializeShipment (the `editable` flag).
+export const EDITABLE_STATUSES = ['created', 'pickup', 'origin']
+
 export const STAGES = [
   { key: 'created', label: 'Label created', detail: 'Shipment registered and label generated' },
   { key: 'pickup', label: 'Picked up', detail: 'Collected from sender' },
@@ -53,6 +58,8 @@ export async function serializeShipment(row) {
   return {
     trackingNumber: row.tracking_number,
     status: row.status,
+    // The owner may edit sender/recipient only before the parcel leaves origin.
+    editable: EDITABLE_STATUSES.includes(row.status),
     from: { code: row.from_code, state: row.from_state || '', name: withState(row.from_state, COUNTRY_NAME[row.from_code] || row.from_code) },
     to: { code: row.to_code, state: row.to_state || '', name: withState(row.to_state, COUNTRY_NAME[row.to_code] || row.to_code) },
     origin: events[0]?.place || COUNTRY_NAME[row.from_code] || row.from_code,

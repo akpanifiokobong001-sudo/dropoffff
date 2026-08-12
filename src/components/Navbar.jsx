@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X, Package, User, LogOut, LayoutDashboard, ChevronDown, LogIn, ShieldCheck } from 'lucide-react'
+import { Menu, X, Package, User, LogOut, LayoutDashboard, ChevronDown, LogIn, ShieldCheck, Settings, Moon, Sun } from 'lucide-react'
 import Logo from './Logo.jsx'
+import NotificationBell from './NotificationBell.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useTheme } from '../context/ThemeContext.jsx'
 
 const links = [
   { to: '/', label: 'Home', end: true },
@@ -18,6 +20,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useTheme()
   const { isAuthenticated, isAdmin, user, logout } = useAuth()
   const menuRef = useRef(null)
 
@@ -82,11 +85,19 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <button
+            onClick={toggleTheme}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-ink/10 bg-white text-ink transition hover:border-ink/20 hover:bg-ink/5 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            aria-label="Toggle dark mode"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          {isAuthenticated && <NotificationBell />}
           {isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full border border-ink/10 bg-white py-1.5 pl-1.5 pr-3 text-sm font-semibold text-ink transition hover:border-ink/20"
+                className="flex items-center gap-2 rounded-full border border-ink/10 bg-white py-1.5 pl-1.5 pr-3 text-sm font-semibold text-ink transition hover:border-ink/20 dark:border-slate-700/50 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
@@ -122,6 +133,13 @@ export default function Navbar() {
                   >
                     <LayoutDashboard size={16} /> Dashboard
                   </Link>
+                  <Link
+                    to="/profile"
+                    role="menuitem"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-ink/5"
+                  >
+                    <Settings size={16} /> Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
                     role="menuitem"
@@ -143,21 +161,24 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-ink/5 lg:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile actions */}
+        <div className="flex items-center gap-2 lg:hidden">
+          {isAuthenticated && <NotificationBell />}
+          <button
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-ink/5"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </nav>
 
       {/* Mobile menu */}
       {open && (
         <div className="lg:hidden">
-          <div className="container-x flex flex-col gap-1 border-t border-ink/5 bg-white pb-6 pt-3">
+          <div className="container-x flex flex-col gap-1 border-t border-ink/5 bg-white pb-6 pt-3 dark:border-slate-700/50 dark:bg-slate-950">
             {links.map((l) => (
               <NavLink
                 key={l.to}
@@ -177,12 +198,19 @@ export default function Navbar() {
               Send a package
             </Link>
 
-            <div className="mt-3 border-t border-ink/5 pt-3">
+            <div className="mt-3 border-t border-ink/5 pt-3 dark:border-slate-700/50">
+              <button
+                onClick={toggleTheme}
+                className="mb-3 inline-flex items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:border-ink/20 hover:bg-ink/5 dark:border-slate-700/50 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              >
+                {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              </button>
               {isAuthenticated ? (
                 <>
                   <div className="px-4 pb-1">
-                    <div className="text-sm font-bold text-ink">{displayName}</div>
-                    {user?.email && <div className="truncate text-xs text-ink-muted">{user.email}</div>}
+                    <div className="text-sm font-bold text-ink dark:text-slate-100">{displayName}</div>
+                    {user?.email && <div className="truncate text-xs text-ink-muted dark:text-slate-400">{user.email}</div>}
                   </div>
                   {isAdmin && (
                     <NavLink
@@ -205,6 +233,16 @@ export default function Navbar() {
                     }
                   >
                     <LayoutDashboard size={18} /> Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/profile"
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 rounded-xl px-4 py-3 text-base font-semibold transition ${
+                        isActive ? 'bg-brand-50 text-brand-600' : 'text-ink-soft hover:bg-ink/5'
+                      }`
+                    }
+                  >
+                    <Settings size={18} /> Profile
                   </NavLink>
                   <button
                     onClick={handleLogout}

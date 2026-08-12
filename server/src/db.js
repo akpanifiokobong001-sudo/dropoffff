@@ -133,6 +133,23 @@ export async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_progress_logs_shipment ON progress_logs(shipment_id);
     CREATE INDEX IF NOT EXISTS idx_progress_logs_user ON progress_logs(user_id);
     CREATE INDEX IF NOT EXISTS idx_progress_logs_created ON progress_logs(created_at);
+
+    -- In-app notifications shown to a user via the navbar bell. One row per
+    -- event (booking, shipment status change, security). Plain Postgres, no
+    -- external channel — mirrors the "reset code on screen" approach.
+    CREATE TABLE IF NOT EXISTS notifications (
+      id          SERIAL PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type        TEXT NOT NULL,          -- 'shipment_status' | 'booking' | 'security'
+      title       TEXT NOT NULL,
+      body        TEXT NOT NULL DEFAULT '',
+      link        TEXT,                   -- e.g. /track?number=DROP-...
+      read        BOOLEAN NOT NULL DEFAULT false,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, read);
   `)
 
   // Additive migrations for DBs created before a column existed. Postgres

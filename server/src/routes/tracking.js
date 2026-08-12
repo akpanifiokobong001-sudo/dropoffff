@@ -3,6 +3,7 @@ import { query, queryOne } from '../db.js'
 import { COUNTRY_NAME } from '../countries.js'
 import { requireAuth } from '../auth.js'
 import { asyncHandler } from '../async-handler.js'
+import { EDITABLE_STATUSES } from '../shipment-stages.js'
 
 const router = Router()
 
@@ -37,6 +38,8 @@ router.get('/:tracking', requireAuth, asyncHandler(async (req, res) => {
       trackingNumber: row.tracking_number,
       status: row.status,
       delivered: row.status === 'delivered',
+      // Owner may edit sender/recipient only before the parcel leaves origin.
+      editable: EDITABLE_STATUSES.includes(row.status),
       photo: row.photo || null,
       sender: safeJson(row.sender),
       recipient: safeJson(row.recipient),

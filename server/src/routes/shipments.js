@@ -5,7 +5,8 @@ import { isValidCountry, COUNTRY_NAME } from '../countries.js'
 import { hasStates, isValidState } from '../states.js'
 import { requireAuth } from '../auth.js'
 import { asyncHandler } from '../async-handler.js'
-import { buildStages, buildPlaceFor, serializeShipment } from '../shipment-stages.js'
+import { buildStages, buildPlaceFor, serializeShipment, EDITABLE_STATUSES } from '../shipment-stages.js'
+import { notify } from '../notifications.js'
 
 const router = Router()
 
@@ -198,7 +199,15 @@ router.post('/', requireAuth, asyncHandler(async (req, res) => {
 
   // Log successful booking
   await logBooking(req.user.id, inserted.id, { ...bookingPayload, tracking, price: quote.price }, 'booking_success', null, req)
-  
+
+  // Notify the owner that their shipment is registered, with a link to track it.
+  await notify(req.user.id, {
+    type: 'booking',
+    title: 'Shipment booked',
+    body: `${tracking} is registered and ready to track.`,
+    link: `/track?number=${encodeURIComponent(tracking)}`,
+  })
+
   return res.status(201).json({ shipment: await serializeShipment(inserted) })
 }))
 
@@ -218,6 +227,39 @@ router.get('/:tracking', requireAuth, asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'No shipment found for that tracking number' })
   }
   return res.json({ shipment: await serializeShipment(row) })
+}))
+
+// PATCH /api/shipments/:tracking — let the owner correct the sender/recipient
+// contact details, but only while the parcel is still at the origin (see
+// EDITABLE_STATUSES). Status/timeline remain admin-only (see admin.js).
+router.patch('/:tracking', requireAuth, asyncHandler(async (req, res) => {
+  const row = await queryOne('SELECT * FROM shipments WHERE tracking_number = $1', [String(req.params.tracking).toUpperCase()])
+  // 404 (not 403) for missing or non-owned shipments — never leak another
+  // account's parcel, same as the GET routes.
+  if (!row || row.user_id !== req.user.id) {
+    return res.status(404).json({ error: 'No shipment found for that tracking number' })
+  }
+
+  if (!EDITABLE_STATUSES.includes(row.status)) {
+    return res.status(403).json({
+      error: 'This shipment can no longer be edited — it has already left the origin facility.',
+    })
+  }
+
+  const { sender = {}, recipient = {} } = req.body || {}
+  let senderClean, recipientClean
+  try {
+    senderClean = cleanContact(sender, 'Sender')
+    recipientClean = cleanContact(recipient, 'Recipient')
+  } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+
+  const updated = await queryOne(
+    'UPDATE shipments SET sender = $1, recipient = $2 WHERE id = $3 RETURNING *',
+    [JSON.stringify(senderClean), JSON.stringify(recipientClean), row.id],
+  )
+  return res.json({ shipment: await serializeShipment(updated) })
 }))
 
 // NOTE: Customers can no longer change a shipment's status. The parcel timeline

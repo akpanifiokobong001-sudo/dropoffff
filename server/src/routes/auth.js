@@ -2,6 +2,9 @@ import { Router } from 'express'
 import { queryOne, query } from '../db.js'
 import { hashPassword, verifyPassword, signToken, publicUser, requireAuth } from '../auth.js'
 import { asyncHandler } from '../async-handler.js'
+import { notify } from '../notifications.js'
+
+const NAME_MAX = 120
 
 const router = Router()
 
@@ -106,6 +109,51 @@ router.post('/login', asyncHandler(async (req, res) => {
 router.get('/me', requireAuth, (req, res) => {
   return res.json({ user: publicUser(req.user) })
 })
+
+// PATCH /api/auth/profile — update the signed-in user's display name. Email is
+// intentionally not editable here (it's the login key and is baked into the
+// JWT), so no token re-issue is needed.
+router.patch('/profile', requireAuth, asyncHandler(async (req, res) => {
+  const { name } = req.body || {}
+  const cleanName = String(name ?? '').trim()
+  if (cleanName.length > NAME_MAX) {
+    return res.status(400).json({ error: `Name must be ${NAME_MAX} characters or fewer` })
+  }
+  const updated = await queryOne(
+    'UPDATE users SET name = $1 WHERE id = $2 RETURNING *',
+    [cleanName, req.user.id],
+  )
+  return res.json({ user: publicUser(updated) })
+}))
+
+// POST /api/auth/change-password — change password for the signed-in user.
+// Requires the current password (re-auth) and enforces the same 6-char minimum
+// as register/reset. Fires a security notification on success.
+router.post('/change-password', requireAuth, asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {}
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new passwords are required' })
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' })
+  }
+
+  const ok = await verifyPassword(currentPassword, req.user.password_hash)
+  if (!ok) {
+    return res.status(401).json({ error: 'Current password is incorrect' })
+  }
+
+  const password_hash = await hashPassword(newPassword)
+  await query('UPDATE users SET password_hash = $1 WHERE id = $2', [password_hash, req.user.id])
+
+  await notify(req.user.id, {
+    type: 'security',
+    title: 'Password updated',
+    body: 'Your account password was changed. If this wasn’t you, reset it immediately.',
+  })
+
+  return res.json({ ok: true })
+}))
 
 // Generate a 6-digit reset code as a zero-padded string.
 function makeResetCode() {

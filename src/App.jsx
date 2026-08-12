@@ -9,6 +9,7 @@ import Pricing from './pages/Pricing.jsx'
 import About from './pages/About.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import Profile from './pages/Profile.jsx'
 import Admin from './pages/Admin.jsx'
 import NotFound from './pages/NotFound.jsx'
 import RequireAuth from './components/RequireAuth.jsx'
@@ -46,6 +47,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <Dashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <Profile />
               </RequireAuth>
             }
           />

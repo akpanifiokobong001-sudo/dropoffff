@@ -68,6 +68,12 @@ export function AuthProvider({ children }) {
     setLogoutReason(reason)
   }, [])
 
+  // Merge fields into the current user (e.g. after a profile name change) so the
+  // UI reflects the update immediately without a re-login.
+  const updateUser = useCallback((partial) => {
+    setUser((u) => (u ? { ...u, ...partial } : u))
+  }, [])
+
   // --- Idle auto-logout -----------------------------------------------------
   // While a user is logged in, reset a timer on any activity. If no activity
   // occurs for IDLE_TIMEOUT_MS, log them out automatically.
@@ -94,7 +100,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user, loading, isAuthenticated: !!user, isAdmin: user?.role === 'admin',
-    login, register, logout, resetWithCode,
+    login, register, logout, resetWithCode, updateUser,
     logoutReason, clearLogoutReason: () => setLogoutReason(null),
   }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
