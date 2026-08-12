@@ -4,16 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, Package, Box, FileText, Shirt, Laptop, Gift,
   PlaneTakeoff, Sparkles, CheckCircle2, RefreshCw, Loader2, AlertCircle, Copy,
-  Camera, ImagePlus, X, User, MapPin, Phone, Building2,
+  Camera, ImagePlus, X,
 } from 'lucide-react'
 import CountrySelect from '../components/CountrySelect.jsx'
 import StateSelect from '../components/StateSelect.jsx'
 import StepIndicator from '../components/StepIndicator.jsx'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
+import ContactFields from '../components/ContactFields.jsx'
+import QRCode from '../components/QRCode.jsx'
 import { formatPrice, SERVICES } from '../lib/pricing.js'
 import { fetchQuotes, createShipment } from '../lib/api.js'
 import { compressImage } from '../lib/image.js'
+import { trackUrl } from '../lib/links.js'
 import { countryByCode } from '../data/countries.js'
 import { hasStates } from '../data/states.js'
 
@@ -592,46 +595,6 @@ function ErrorNote({ message }) {
   )
 }
 
-// Sender / recipient contact fields (name, address, city, phone). `accent`
-// tints the header so the two columns read as distinct parties.
-function ContactFields({ title, accent, contact, onField }) {
-  const tint = accent === 'teal' ? 'text-teal-600' : 'text-brand-600'
-  return (
-    <div className="rounded-2xl border border-ink/10 bg-white p-5">
-      <div className={`mb-4 flex items-center gap-2 text-sm font-bold ${tint}`}>
-        <User size={16} /> {title}
-      </div>
-      <div className="space-y-3">
-        <Field icon={User} placeholder="Full name"
-          value={contact.name} onChange={(v) => onField('name', v)} autoComplete="name" />
-        <Field icon={MapPin} placeholder="Home address"
-          value={contact.address} onChange={(v) => onField('address', v)} autoComplete="street-address" />
-        <Field icon={Building2} placeholder="City"
-          value={contact.city} onChange={(v) => onField('city', v)} autoComplete="address-level2" />
-        <Field icon={Phone} placeholder="Phone number" type="tel"
-          value={contact.phone} onChange={(v) => onField('phone', v)} autoComplete="tel" />
-      </div>
-    </div>
-  )
-}
-
-// A single labelled text input with a leading icon.
-function Field({ icon: Icon, placeholder, value, onChange, type = 'text', autoComplete }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-ink/10 bg-white px-3 focus-within:border-brand-300">
-      <Icon size={16} className="shrink-0 text-ink-muted" />
-      <input
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-ink-muted"
-      />
-    </div>
-  )
-}
-
 // Shown after a shipment is successfully created — surfaces the tracking number
 // and a link to the Track page.
 function Success({ shipment, onReset }) {
@@ -658,6 +621,13 @@ function Success({ shipment, onReset }) {
         >
           <Copy size={18} />
         </button>
+      </div>
+
+      {/* Scannable tracking link — encodes the absolute URL so a phone camera
+          opens the live tracking page directly. */}
+      <div className="mx-auto mt-5 flex max-w-sm flex-col items-center gap-2 rounded-2xl border border-ink/10 bg-white p-4">
+        <QRCode value={trackUrl(shipment.trackingNumber)} size={148} title="Scan to track this shipment" />
+        <span className="text-xs font-medium text-ink-muted">Scan to track on your phone</span>
       </div>
 
       <div className="mt-4 text-sm text-ink-muted">

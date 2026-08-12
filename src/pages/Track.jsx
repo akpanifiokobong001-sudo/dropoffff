@@ -3,11 +3,14 @@ import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Search, MapPin, PackageCheck, Truck, CheckCircle2, Circle, Copy, Loader2, AlertCircle, ImageIcon,
-  User, Phone,
+  User, Phone, Pencil, X, Save,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
-import { fetchTracking } from '../lib/api.js'
+import ContactFields from '../components/ContactFields.jsx'
+import QRCode from '../components/QRCode.jsx'
+import { fetchTracking, updateShipment } from '../lib/api.js'
+import { trackUrl } from '../lib/links.js'
 
 export default function Track() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -147,6 +150,12 @@ export default function Track() {
                       </div>
                       <div className="text-xl font-extrabold text-ink">{result.trackingNumber}</div>
                     </div>
+                    <QRCode
+                      value={trackUrl(result.trackingNumber)}
+                      size={92}
+                      className="order-last shrink-0 rounded-lg border border-ink/10 sm:order-none"
+                      title="Scan or share this shipment"
+                    />
                     <span
                       className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${
                         result.delivered
@@ -174,12 +183,9 @@ export default function Track() {
                   </div>
                 </div>
 
-                {/* Sender / recipient details */}
-                {(result.sender?.name || result.recipient?.name) && (
-                  <div className="grid gap-px border-b border-ink/5 bg-ink/5 sm:grid-cols-2">
-                    <ContactCard title="Sender" accent="brand" contact={result.sender} />
-                    <ContactCard title="Recipient" accent="teal" contact={result.recipient} />
-                  </div>
+                {/* Sender / recipient details — editable while the parcel is at origin */}
+                {(result.sender?.name || result.recipient?.name || result.editable) && (
+                  <ContactsSection result={result} onUpdated={setResult} />
                 )}
 
                 {/* Parcel photo (if the sender added one) */}
@@ -237,6 +243,118 @@ export default function Track() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+const EMPTY_CONTACT = { name: '', address: '', city: '', phone: '' }
+
+// Normalize a contact from the API (which may be {} or missing fields) into the
+// full {name,address,city,phone} shape the edit form expects.
+function toContact(c) {
+  return { ...EMPTY_CONTACT, ...(c || {}) }
+}
+
+// Sender/recipient block: read-only cards with an "Edit" affordance when the
+// shipment is still editable (result.editable). Toggling shows an inline form
+// that PATCHes the shipment and swaps the freshly-serialized result back in.
+function ContactsSection({ result, onUpdated }) {
+  const [editing, setEditing] = useState(false)
+  const [sender, setSender] = useState(toContact(result.sender))
+  const [recipient, setRecipient] = useState(toContact(result.recipient))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function startEdit() {
+    setSender(toContact(result.sender))
+    setRecipient(toContact(result.recipient))
+    setError('')
+    setEditing(true)
+  }
+
+  const setSenderField = (key, val) => setSender((c) => ({ ...c, [key]: val }))
+  const setRecipientField = (key, val) => setRecipient((c) => ({ ...c, [key]: val }))
+
+  const complete = (c) => c.name.trim() && c.address.trim() && c.city.trim() && c.phone.trim()
+  const canSave = complete(sender) && complete(recipient)
+
+  async function onSave() {
+    if (!canSave) {
+      setError('Please fill in every field for both the sender and the recipient.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const updated = await updateShipment(result.trackingNumber, { sender, recipient })
+      // The shipments PATCH returns the full serialized shipment, which carries
+      // the same sender/recipient/editable fields the tracking view reads.
+      onUpdated((prev) => ({ ...prev, sender: updated.sender, recipient: updated.recipient, editable: updated.editable }))
+      setEditing(false)
+    } catch (err) {
+      setError(err.message || 'Could not save changes. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="border-b border-ink/5 bg-cloud/50 p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-sm font-bold text-ink">Edit sender &amp; recipient</div>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="flex items-center gap-1 text-sm font-semibold text-ink-muted hover:text-ink"
+            disabled={saving}
+          >
+            <X size={15} /> Cancel
+          </button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ContactFields title="Sender" accent="brand" contact={sender} onField={setSenderField} />
+          <ContactFields title="Recipient" accent="teal" contact={recipient} onField={setRecipientField} />
+        </div>
+        {error && (
+          <div className="mt-4 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <AlertCircle size={16} className="shrink-0" /> {error}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onSave}
+          className="btn-primary mt-4 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={saving || !canSave}
+        >
+          {saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><Save size={16} /> Save changes</>}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-b border-ink/5">
+      {result.editable && (
+        <div className="flex items-center justify-between gap-2 bg-cloud/40 px-6 py-3">
+          <span className="text-xs font-medium text-ink-muted">
+            You can edit these details until the parcel leaves the origin facility.
+          </span>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-brand-200 bg-white px-3 py-1.5 text-xs font-bold text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+          >
+            <Pencil size={13} /> Edit
+          </button>
+        </div>
+      )}
+      {(result.sender?.name || result.recipient?.name) && (
+        <div className="grid gap-px bg-ink/5 sm:grid-cols-2">
+          <ContactCard title="Sender" accent="brand" contact={result.sender} />
+          <ContactCard title="Recipient" accent="teal" contact={result.recipient} />
+        </div>
+      )}
     </div>
   )
 }
