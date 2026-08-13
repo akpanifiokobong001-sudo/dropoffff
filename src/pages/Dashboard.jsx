@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Package, PackageCheck, Truck, ArrowRight, Plus, Loader2, AlertCircle, MapPin,
+  ReceiptText,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
@@ -96,10 +97,13 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.3) }}
                 >
-                  <Link
-                    to={`/track?number=${encodeURIComponent(s.trackingNumber)}`}
-                    className="card block p-5 transition hover:-translate-y-0.5 hover:shadow-glow"
-                  >
+                  {/* The card body links to tracking; the receipt link sits in
+                      its own footer row (nesting <a> inside <a> is invalid). */}
+                  <div className="card p-5 transition hover:-translate-y-0.5 hover:shadow-glow">
+                    <Link
+                      to={`/track?number=${encodeURIComponent(s.trackingNumber)}`}
+                      className="block"
+                    >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <span
@@ -137,8 +141,17 @@ export default function Dashboard() {
                         {s.delivered ? 'Delivered' : `${s.progress}%`}
                       </span>
                     </div>
+                    </Link>
 
-                  </Link>
+                    <div className="mt-4 flex justify-end border-t border-ink/5 pt-3">
+                      <Link
+                        to={`/receipt/${encodeURIComponent(s.trackingNumber)}`}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-brand-600 transition hover:bg-brand-50"
+                      >
+                        <ReceiptText size={13} /> Receipt
+                      </Link>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>

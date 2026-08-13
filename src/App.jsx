@@ -10,6 +10,7 @@ import About from './pages/About.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Profile from './pages/Profile.jsx'
+import Receipt from './pages/Receipt.jsx'
 import Admin from './pages/Admin.jsx'
 import NotFound from './pages/NotFound.jsx'
 import RequireAuth from './components/RequireAuth.jsx'
@@ -55,6 +56,15 @@ export default function App() {
             element={
               <RequireAuth>
                 <Profile />
+              </RequireAuth>
+            }
+          />
+          {/* Receipts are owner-only: the API 404s for shipments you don't own. */}
+          <Route
+            path="/receipt/:tracking"
+            element={
+              <RequireAuth>
+                <Receipt />
               </RequireAuth>
             }
           />

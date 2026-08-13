@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Search, MapPin, PackageCheck, Truck, CheckCircle2, Circle, Copy, Loader2, AlertCircle, ImageIcon,
-  User, Phone, Pencil, X, Save,
+  User, Phone, Pencil, X, Save, ReceiptText,
 } from 'lucide-react'
 import Reveal from '../components/Reveal.jsx'
 import BackButton from '../components/BackButton.jsx'
@@ -166,6 +166,12 @@ export default function Track() {
                       {result.delivered ? <PackageCheck size={16} /> : <Truck size={16} />}
                       {statusLabel}
                     </span>
+                    <Link
+                      to={`/receipt/${encodeURIComponent(result.trackingNumber)}`}
+                      className="no-print inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-white px-3 py-2 text-xs font-bold text-brand-600 transition hover:border-brand-300 hover:bg-brand-50"
+                    >
+                      <ReceiptText size={14} /> Receipt
+                    </Link>
                   </div>
 
                   {/* Route + progress */}

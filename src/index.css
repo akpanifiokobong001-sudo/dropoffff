@@ -108,6 +108,52 @@
 .dark .border-ink\/10  { border-color: rgba(148, 163, 184, 0.18); }
 .dark .border-ink\/5   { border-color: rgba(148, 163, 184, 0.12); }
 
+/* --- Print styles (receipts) ----------------------------------------------
+   The receipt route reuses the normal app chrome on screen, so printing must
+   strip it: header, footer, and anything marked .no-print disappear, and the
+   sheet is forced to light ink-on-white regardless of dark mode (printing a
+   dark theme wastes toner and renders unreadably).
+   Elements marked .print-only are hidden on screen and appear on paper. */
+.print-only { display: none; }
+
+@media print {
+  /* Hide app chrome and any on-screen-only affordances. */
+  header, footer, .no-print { display: none !important; }
+
+  .print-only { display: block; }
+
+  /* Force a light sheet: undo the dark-mode remaps above and any decorative
+     gradients/shadows so the receipt prints clean. */
+  html, body, .dark body {
+    background: #fff !important;
+    color: #0B1020 !important;
+  }
+  .dark .text-ink, .dark .text-ink-soft, .dark .text-ink-muted { color: #0B1020 !important; }
+  .dark .bg-white, .dark .card { background-color: #fff !important; }
+
+  .card, .dark .card {
+    border: 1px solid #d4d8e0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Kill the page's decorative background wash and outer padding so the
+     receipt starts at the top of the sheet. */
+  .bg-hero-grad { background: none !important; }
+  .print-sheet {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Avoid breaking a logical block across two pages. */
+  .print-keep { break-inside: avoid; page-break-inside: avoid; }
+
+  a { text-decoration: none !important; color: inherit !important; }
+
+  @page { margin: 14mm; }
+}
+
 /* Custom scrollbar for a polished feel */
 ::-webkit-scrollbar {
   width: 10px;

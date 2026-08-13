@@ -144,6 +144,17 @@ export async function fetchMyShipments() {
   return data.shipments
 }
 
+// GET /api/shipments/:tracking → shipment (owner only), null on 404
+export async function fetchShipment(trackingNumber) {
+  try {
+    const data = await request(`/shipments/${encodeURIComponent(trackingNumber)}`)
+    return data.shipment
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null
+    throw err
+  }
+}
+
 // PATCH /api/shipments/:tracking → { shipment }
 // Update sender/recipient on a shipment the user owns (only while it's editable).
 export async function updateShipment(trackingNumber, { sender, recipient }) {

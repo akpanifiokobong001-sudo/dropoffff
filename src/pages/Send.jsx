@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, Package, Box, FileText, Shirt, Laptop, Gift,
   PlaneTakeoff, Sparkles, CheckCircle2, RefreshCw, Loader2, AlertCircle, Copy,
-  Camera, ImagePlus, X,
+  Camera, ImagePlus, X, Receipt,
 } from 'lucide-react'
 import CountrySelect from '../components/CountrySelect.jsx'
 import StateSelect from '../components/StateSelect.jsx'
@@ -638,6 +638,9 @@ function Success({ shipment, onReset }) {
       <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
         <Link to={`/track?number=${encodeURIComponent(shipment.trackingNumber)}`} className="btn-primary">
           Track this shipment <ArrowRight size={16} />
+        </Link>
+        <Link to={`/receipt/${encodeURIComponent(shipment.trackingNumber)}`} className="btn-secondary">
+          <Receipt size={16} /> View receipt
         </Link>
         <button type="button" onClick={onReset} className="btn-secondary">
           <RefreshCw size={16} /> Send another
